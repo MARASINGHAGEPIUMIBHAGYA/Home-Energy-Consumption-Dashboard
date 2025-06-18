@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>⚡ Power Forecast Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 Home Power Consumption</h1>
+        <form method="POST">
+            <br>
+            <label for="input_values">🕑Enter last 24 hours of energy usage (kW):</label>
+            <textarea
+                id="input_values"
+                name="input_values"
+                placeholder="e.g. 1.2, 0.8, 1.0, 0.9, ..."
+                required
+            >{{ request.form.input_values if request.method == 'POST' else '' }}</textarea>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button type="button" onclick="generateSample()">🎲 Generate Sample Values</button>
+                <button type="submit">📈 Forecast</button>
+            </div>
+        </form>
+        
+        {% if forecast %}
+        <div class="result">
+            <h2>📊 Forecasted Value for next hour: <strong>{{ forecast }} kW💡 </strong></h2>
+            <canvas id="forecastChart" width="600" height="300"></canvas>
+        </div>
+        {% elif error %}
+        <div class="error">
+            <p>❌ {{ error }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function generateSample() {
+            const values = Array.from({ length: 24 }, () => (Math.random() * 2 + 0.8).toFixed(2));
+            document.getElementById('input_values').value = values.join(', ');
+        }
+    </script>
+
+    {% if forecast and request.form.input_values %}
+    <script>
+        const inputValues = "{{ request.form.input_values }}".split(',').map(v => parseFloat(v.trim()));
+        const forecastValue = {{ forecast }};
+
+        const labels = Array.from({ length: inputValues.length + 1 }, (_, i) =>
+            i < inputValues.length ? ` ${i + 1} h` : 'next hour'
+        );
+
+        const data = {
+            labels: labels,
+            datasets: [{
+                label: 'Power Consumption (kW)',
+                data: [...inputValues, forecastValue],
+                fill: false,
+                borderColor: 'rgba(52, 152, 219, 1)',
+                backgroundColor: 'rgba(52, 152, 219, 0.5)',
+                tension: 0.3,
+                pointBackgroundColor: 'rgba(41, 128, 185, 1)',
+                pointBorderColor: '#fff',
+                pointHoverRadius: 6
+            }]
+        };
+
+        const config = {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                }
+            }
+        };
+
+        new Chart(document.getElementById('forecastChart'), config);
+    </script>
+    {% endif %}
+</body>
+</html>
